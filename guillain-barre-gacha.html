@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>ギラン・バレーガチャ</title>
+    <style>
+        :root {
+            box-sizing: border-box;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .gacha-card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 480px;
+            padding: 24px;
+            text-align: center;
+        }
+        h1 { color: #2c3e50; margin: 0 0 10px 0; font-size: 22px; }
+        .rate-badge {
+            display: inline-block;
+            background-color: #e8f4fd;
+            color: #1976d2;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .controls { display: flex; gap: 8px; margin-bottom: 20px; }
+        .btn {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn:hover { opacity: 0.9; }
+        .btn-blue { background-color: #3b82f6; }
+        .btn-green { background-color: #10b981; }
+        .btn-red { background-color: #ef4444; }
+        .result-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 180px;
+            max-height: 280px;
+            overflow-y: auto;
+            text-align: left;
+        }
+        .placeholder { color: #94a3b8; text-align: center; padding-top: 60px; font-size: 14px; }
+        .item-row { padding: 8px 0; border-bottom: 1px dashed #cbd5e1; font-size: 14px; color: #334155; }
+        .item-row:last-child { border-bottom: none; }
+        .hit-row {
+            background-color: #fef3c7;
+            color: #92400e;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #fde68a;
+            margin-bottom: 8px;
+        }
+        .summary {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #f1f5f9;
+            font-size: 13px;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+<div class="gacha-card">
+    <h1>ギラン・バレーガチャ</h1>
+    <div class="rate-badge">大当たり確率: 0.1% (1/1000)</div>
+
+    <div class="controls">
+        <button class="btn btn-blue" onclick="play(1)">1回引く</button>
+        <button class="btn btn-green" onclick="play(10)">10連</button>
+        <button class="btn btn-red" onclick="playUntilHit()">当たるまで</button>
+    </div>
+
+    <div class="result-box" id="resultArea">
+        <div class="placeholder">ボタンを押すとガチャが始まります</div>
+    </div>
+
+    <div class="summary">
+        <span id="totalDraws">通算: 0回</span>
+        <span id="totalCost">仮想消費額: 0円</span>
+    </div>
+</div>
+
+<script>
+    const PROBABILITY = 0.001; // 0.1%
+    const COST = 300; // 1回300円
+
+    const ITEMS = {
+        HIT: "大当たり",
+        MISS: "ハズレ"
+    };
+
+    let totalCount = 0;
+
+    function draw() {
+        totalCount++;
+        const isHit = Math.random() < PROBABILITY;
+        if (isHit) {
+            return { isHit: true, name: ITEMS.HIT };
+        }
+        return { isHit: false, name: ITEMS.MISS };
+    }
+
+    function updateSummary() {
+        document.getElementById('totalDraws').innerText = `通算: ${totalCount.toLocaleString()}回`;
+        document.getElementById('totalCost').innerText = `仮想消費額: ${(totalCount * COST).toLocaleString()}円`;
+    }
+
+    function play(times) {
+        const area = document.getElementById('resultArea');
+        area.innerHTML = '';
+
+        for (let i = 0; i < times; i++) {
+            const res = draw();
+            const el = document.createElement('div');
+            if (res.isHit) {
+                el.className = 'hit-row';
+                el.innerText = (times > 1 ? `${i + 1}回目: ` : '') + '🎉✨ 【大当たり！】 ' + res.name;
+            } else {
+                el.className = 'item-row';
+                el.innerText = (times > 1 ? `${i + 1}回目: ` : '') + res.name;
+            }
+            area.appendChild(el);
+        }
+
+        updateSummary();
+    }
+
+    function playUntilHit() {
+        const area = document.getElementById('resultArea');
+        area.innerHTML = '<div class="placeholder">抽選中...</div>';
+
+        setTimeout(() => {
+            let sessionCount = 0;
+            let result = null;
+
+            while (true) {
+                sessionCount++;
+                const res = draw();
+                if (res.isHit) {
+                    result = res;
+                    break;
+                }
+            }
+
+            area.innerHTML = `
+                <div class="hit-row">
+                    🎉✨ 【大当たり獲得！】<br>${result.name}
+                </div>
+                <div class="item-row" style="margin-top: 10px;">
+                    今回かかった回数: <strong>${sessionCount.toLocaleString()}</strong> 回<br>
+                    今回かかった金額: <strong>${(sessionCount * COST).toLocaleString()}</strong> 円
+                </div>
+            `;
+
+            updateSummary();
+        }, 30);
+    }
+</script>
+
+</body>
+</html>
